@@ -848,15 +848,35 @@
                     
                     // 创建下载链接
                     const link = document.createElement('a');
-                    link.download = `100days-tracker-${currentTheme.title.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.png`;
+                    link.download = `打卡-${new Date().toLocaleDateString()}.png`;
                     link.href = canvas.toDataURL('image/png');
-                    link.click();
+                    
+                    // 移动端兼容处理
+                    if (navigator.userAgent.match(/(iPhone|iPad|iPod|Android)/i)) {
+                        // 对于移动设备，使用不同的下载方法
+                        if (typeof link.download === 'undefined') {
+                            // Android不支持download属性，使用新窗口打开
+                            link.target = '_blank';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        } else {
+                            // iOS支持download属性
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }
+                    } else {
+                        // 桌面端直接点击
+                        link.click();
+                    }
                     
                     // 清理临时元素
                     document.body.removeChild(exportContainer);
                     
-                    // 显示成功提示
-                    showNotification('图片导出成功！', 'success');
+                    // 显示成功提示和文件位置说明
+                    const message = `图片已开始下载！\n\n📱 手机用户请查看：\n• iOS: "文件"应用 → "下载"文件夹\n• Android: "文件管理" → "下载"文件夹\n• 或在浏览器下载历史中查看`;
+                    showNotification(message, 'success');
                 }).catch(error => {
                     console.error('导出图片时出错:', error);
                     document.body.removeChild(exportContainer);
