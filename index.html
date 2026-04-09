@@ -1,0 +1,1444 @@
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>100天打卡</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com?v=1.0.1"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css?v=1.0.1" rel="stylesheet">
+    <!-- html2canvas for image export -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js?v=1.0.1"></script>
+    <!-- 应用版本号 - 每次更新时修改这个版本号 -->
+    <script>
+        // 应用版本号，每次更新时增加版本号
+        const APP_VERSION = '1.0.1';
+    </script>
+    
+    <!-- 统一的 Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#B4BEC6',
+                        secondary: '#AAB4AF',
+                        accent: '#C8B4B9',
+                        light: '#f3f4f6',
+                        dark: '#1f2937'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'bounce-light': 'bounce-light 1s ease-in-out',
+                    },
+                    keyframes: {
+                        'bounce-light': {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-5px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .checkmark {
+                @apply absolute inset-0 flex items-center justify-center text-white opacity-0 transition-opacity duration-300;
+            }
+            .circle-checkbox.checked .checkmark {
+                @apply opacity-100;
+            }
+            .progress-bar {
+                @apply h-2 bg-gray-200 rounded-full overflow-hidden;
+            }
+            .progress-value {
+                @apply h-full bg-primary transition-all duration-500 ease-out;
+            }
+            .tooltip {
+                @apply invisible absolute bg-dark text-white text-xs rounded py-1 px-2 -mt-8 opacity-0 transition-opacity duration-300;
+                width: 120px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            .has-tooltip:hover .tooltip {
+                @apply visible opacity-100 z-50;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 主题切换器 -->
+    <div class="fixed top-4 right-4 z-50">
+        <button id="theme-switcher" class="bg-white p-2 rounded-full shadow-md hover:shadow-lg transition-shadow">
+            <i class="fa fa-paint-brush text-primary"></i>
+        </button>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- 标题区域 -->
+        <header class="mb-8 text-center">
+            <div class="flex justify-center items-center mb-2">
+                <h1 id="tracker-title" class="text-4xl md:text-5xl font-bold text-dark mb-2 mr-3">我的100天打卡</h1>
+                <button id="edit-title-btn" class="text-gray-400 hover:text-primary transition-colors">
+                    <i class="fa fa-pencil"></i>
+                </button>
+            </div>
+            <p id="tracker-subtitle" class="text-gray-600 text-lg">追踪进度，培养习惯，实现目标</p>
+        </header>
+
+        <!-- 控制面板 -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <!-- 周期选择 -->
+                <div class="flex flex-wrap gap-3">
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="radio" name="tracking-period" value="day" class="sr-only peer" checked="">
+                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        <span class="ml-3 text-gray-700 font-medium">天</span>
+                    </label>
+                    
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="radio" name="tracking-period" value="hour" class="sr-only peer">
+                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        <span class="ml-3 text-gray-700 font-medium">小时</span>
+                    </label>
+                    
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="radio" name="tracking-period" value="half-hour" class="sr-only peer">
+                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        <span class="ml-3 text-gray-700 font-medium">半小时</span>
+                    </label>
+                </div>
+
+                <!-- 日期范围选择 -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div>
+                        <label for="start-date" class="block text-sm font-medium text-gray-700 mb-1">开始:</label>
+                        <input type="date" id="start-date" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <div>
+                        <label for="end-date" class="block text-sm font-medium text-gray-700 mb-1">结束:</label>
+                        <input type="date" id="end-date" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 进度统计 -->
+            <div class="mt-6">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-gray-700">进度: <span id="progress-text">0/100 天 (0%)</span></span>
+                    <div class="flex items-center">
+                        <button id="reset-btn" class="text-sm text-gray-600 hover:text-red-500 transition-colors flex items-center">
+                            <i class="fa fa-refresh mr-1"></i> 重置
+                        </button>
+                        <button id="export-btn" class="text-sm text-gray-600 hover:text-primary transition-colors flex items-center ml-4">
+                            <i class="fa fa-download mr-1"></i> 导出
+                        </button>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div id="progress-value" class="progress-value" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 打卡网格 -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <div class="grid grid-cols-10 sm:grid-cols-10 md:grid-cols-10 gap-1 sm:gap-2 md:gap-3" id="days-grid">
+                <!-- 天数网格将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <!-- 笔记区域 -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">笔记</h2>
+            <textarea id="notes-area" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="在这里添加你的笔记、反思或里程碑..."></textarea>
+            <div class="mt-3 flex justify-end">
+                <button id="save-notes-btn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-accent transition-colors flex items-center">
+                    <i class="fa fa-save mr-2"></i> 保存笔记
+                </button>
+            </div>
+        </div>
+
+        <!-- 成就和里程碑 -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">成就与里程碑</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="achievements-container">
+                <!-- 成就将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modal-title" class="text-xl font-semibold text-gray-800">日期详情</h3>
+                <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="modal-content" class="mb-6">
+                <!-- 模态框内容将通过JavaScript动态生成 -->
+            </div>
+            <div class="flex justify-end">
+                <button id="modal-confirm" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-accent transition-colors">
+                    保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const daysGrid = document.getElementById('days-grid');
+            const progressText = document.getElementById('progress-text');
+            const progressValue = document.getElementById('progress-value');
+            const startDateInput = document.getElementById('start-date');
+            const endDateInput = document.getElementById('end-date');
+            const notesArea = document.getElementById('notes-area');
+            const saveNotesBtn = document.getElementById('save-notes-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const exportBtn = document.getElementById('export-btn');
+            const modal = document.getElementById('modal');
+            const closeModal = document.getElementById('close-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalContent = document.getElementById('modal-content');
+            const modalConfirm = document.getElementById('modal-confirm');
+            const achievementsContainer = document.getElementById('achievements-container');
+            const trackingPeriodRadios = document.querySelectorAll('input[name="tracking-period"]');
+            const trackerTitle = document.getElementById('tracker-title');
+            const trackerSubtitle = document.getElementById('tracker-subtitle');
+            const editTitleBtn = document.getElementById('edit-title-btn');
+            const themeSwitcher = document.getElementById('theme-switcher');
+
+            // 中国传统色彩
+            const traditionalColors = [
+                { name: '绀青', hex: '#003371' },
+                { name: '雪青', hex: '#B0A4E3' },
+                { name: '胭脂', hex: '#9D2933' },
+                { name: '苍翠', hex: '#7BCFA6' },
+                { name: '桃夭', hex: '#F47983' },
+                { name: '月白', hex: '#D6ECF0' },
+                { name: '黛青', hex: '#425066' },
+                { name: '藕荷', hex: '#E4C6D0' },
+                { name: '竹青', hex: '#96CE54' },
+                { name: '秋香', hex: '#D9B611' },
+                { name: '海天霞', hex: '#FDB89B' },
+                { name: '远山黛', hex: '#75878A' }
+            ];
+            
+            // 应用状态
+            let themes = JSON.parse(localStorage.getItem('themes')) || [
+                {
+                    id: 'default',
+                    title: 'My 100 Days Tracker',
+                    subtitle: 'Track your progress, build habits, achieve goals',
+                    daysData: Array(100).fill(null).map((_, i) => ({
+                        day: i + 1,
+                        completed: false,
+                        date: null,
+                        note: '',
+                        time: null,
+                        color: '#B4BEC6' // 默认莫兰迪灰蓝色
+                    })),
+                    notes: '',
+                    trackingPeriod: 'day',
+                    startDate: null,
+                    endDate: null
+                }
+            ];
+            
+            let currentThemeId = localStorage.getItem('currentThemeId') || 'default';
+            let currentTheme = themes.find(theme => theme.id === currentThemeId) || themes[0];
+            let currentEditDay = null;
+
+            // 设置默认日期
+            const today = new Date();
+            const defaultStartDate = new Date();
+            defaultStartDate.setDate(today.getDate() - 1); // 昨天开始
+            
+            const defaultEndDate = new Date();
+            defaultEndDate.setDate(today.getDate() + 99); // 100天后结束
+            
+            // 设置当前主题的日期
+            if (!currentTheme.startDate) {
+                currentTheme.startDate = defaultStartDate.toISOString().split('T')[0];
+            }
+            
+            if (!currentTheme.endDate) {
+                currentTheme.endDate = defaultEndDate.toISOString().split('T')[0];
+            }
+            
+            startDateInput.value = currentTheme.startDate;
+            endDateInput.value = currentTheme.endDate;
+            
+            // 更新标题和副标题
+            trackerTitle.textContent = currentTheme.title;
+            trackerSubtitle.textContent = currentTheme.subtitle;
+
+            // 渲染天数网格
+            function renderDaysGrid() {
+                console.log('开始渲染天数网格...');
+                daysGrid.innerHTML = '';
+                
+                currentTheme.daysData.forEach((day, index) => {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'relative aspect-square flex items-center justify-center';
+                    
+                    // 计算日期
+                    const startDate = new Date(startDateInput.value);
+                    const dayDate = new Date(startDate);
+                    dayDate.setDate(startDate.getDate() + index);
+                    
+                    // 格式化日期为YYYY-MM-DD
+                    const formattedDate = dayDate.toISOString().split('T')[0];
+                    
+                    // 更新day.date
+                    if (!day.date) {
+                        day.date = formattedDate;
+                    }
+                    
+                    // 检查是否是今天
+                    const isToday = formattedDate === today.toISOString().split('T')[0];
+                    
+                    // 检查是否是未来日期
+                    const todayOnly = new Date();
+                    todayOnly.setHours(0, 0, 0, 0);
+                    const checkDate = new Date(dayDate);
+                    checkDate.setHours(0, 0, 0, 0);
+                    const isFuture = checkDate > todayOnly;
+                    
+                    // 设置样式和内容
+                    dayElement.innerHTML = `
+                        <div class="circle-checkbox relative w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 ${day.completed ? `border-[${day.color}] bg-[${day.color}]` : 'border-gray-300 bg-white'} transition-all duration-300 hover:scale-105 ${isFuture ? 'opacity-50' : ''} ${isToday ? `ring-4 ring-[${day.color}] ring-opacity-30` : ''} ${day.completed ? 'checked' : ''}" data-day="${day.day}">
+                            <span class="text-xs sm:text-sm font-medium ${day.completed ? 'text-white' : 'text-gray-700'}">${day.day}</span>
+                            <i class="checkmark fa fa-check"></i>
+                            <div class="tooltip">${formattedDate}</div>
+                        </div>
+                    `;
+                    
+                    daysGrid.appendChild(dayElement);
+                    
+                    // 添加点击事件
+                    const circleCheckbox = dayElement.querySelector('.circle-checkbox');
+                    
+                    // 确保所有按钮都可点击
+                    circleCheckbox.style.pointerEvents = 'auto';
+                    circleCheckbox.style.cursor = 'pointer';
+                    
+                    // 添加点击事件
+                    circleCheckbox.addEventListener('click', function(event) {
+                        event.stopPropagation(); // 防止事件冒泡
+                        console.log(`点击了第 ${day.day} 天，日期: ${formattedDate}`);
+                        handleDayClick(day.day, event);
+                    });
+                    
+                    // 添加触摸事件支持
+                    circleCheckbox.addEventListener('touchstart', function(event) {
+                        event.preventDefault();
+                        console.log(`触摸了第 ${day.day} 天，日期: ${formattedDate}`);
+                        handleDayClick(day.day, event);
+                    });
+                    
+                    // 如果是未来日期，显示不同的样式
+                    if (isFuture) {
+                        circleCheckbox.style.opacity = '0.6';
+                        circleCheckbox.style.borderStyle = 'dashed';
+                    } else {
+                        circleCheckbox.style.opacity = '1';
+                        circleCheckbox.style.borderStyle = 'solid';
+                    }
+                });
+                
+                // 更新进度
+                updateProgress();
+                
+                // 检查成就
+                checkAchievements();
+            }
+            
+            // 处理天数点击
+            function handleDayClick(day, event) {
+                const dayIndex = day - 1;
+                const startDate = new Date(startDateInput.value);
+                const dayDate = new Date(startDate);
+                dayDate.setDate(startDate.getDate() + dayIndex);
+                
+                // 检查是否是未来日期
+                const todayOnly = new Date();
+                todayOnly.setHours(0, 0, 0, 0);
+                const checkDate = new Date(dayDate);
+                checkDate.setHours(0, 0, 0, 0);
+                
+                console.log(`检查日期: ${checkDate.toDateString()}, 今天: ${todayOnly.toDateString()}, 是否未来: ${checkDate > todayOnly}`);
+                
+                // 允许所有日期都可以打卡（包括未来日期）
+                // 移除未来日期的限制，让所有按钮都可以点击
+                // if (checkDate > todayOnly) {
+                //     console.log('未来日期，不允许打卡');
+                //     showNotification('不能为未来日期打卡！', 'error');
+                //     return;
+                // }
+                
+                // 如果是单击，切换完成状态
+                // 对于触摸事件，detail可能不是1，所以我们需要特殊处理
+                const isSingleClick = event.detail === 1 || event.type === 'touchstart';
+                if (isSingleClick) {
+                    currentTheme.daysData[dayIndex].completed = !currentTheme.daysData[dayIndex].completed;
+                    
+                    // 如果完成，设置时间并打开颜色选择
+                    if (currentTheme.daysData[dayIndex].completed) {
+                        currentTheme.daysData[dayIndex].time = new Date().toLocaleTimeString();
+                        
+                        // 打开颜色选择模态框
+                        openColorSelectionModal(day);
+                    } else {
+                        currentTheme.daysData[dayIndex].time = null;
+                    }
+                    
+                    saveData();
+                    renderDaysGrid();
+                    
+                    // 添加动画效果
+                    const circleCheckbox = event.currentTarget;
+                    circleCheckbox.classList.add('animate-bounce-light');
+                    setTimeout(() => {
+                        circleCheckbox.classList.remove('animate-bounce-light');
+                    }, 1000);
+                    
+                    console.log(`第 ${day} 天打卡状态已切换为: ${currentTheme.daysData[dayIndex].completed}`);
+                } 
+                // 如果是双击，打开编辑模态框
+                else if (event.detail === 2) {
+                    openEditModal(day);
+                }
+            }
+            
+            // 打开编辑模态框
+            function openEditModal(day) {
+                currentEditDay = day;
+                const dayData = currentTheme.daysData[day - 1];
+                const startDate = new Date(startDateInput.value);
+                const dayDate = new Date(startDate);
+                dayDate.setDate(startDate.getDate() + (day - 1));
+                
+                modalTitle.textContent = `Day ${day} - ${dayDate.toLocaleDateString()}`;
+                
+                modalContent.innerHTML = `
+                    <div class="mb-4">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="modal-completed" class="sr-only peer" ${dayData.completed ? 'checked' : ''}>
+                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                            <span class="ml-3 text-gray-700 font-medium">已完成</span>
+                        </label>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="modal-color" class="block text-sm font-medium text-gray-700 mb-1">颜色:</label>
+                        <div class="flex flex-wrap gap-2">
+                            ${traditionalColors.map(color => `
+                                <div class="color-option w-8 h-8 rounded-full border-2 border-gray-300 cursor-pointer relative ${dayData.color === color.hex ? 'ring-2 ring-gray-500' : ''}" data-color="${color.hex}" style="background-color: ${color.hex};">
+                                    <span class="tooltip">${color.name}</span>
+                                </div>
+                            `).join('')}
+                            <input type="color" id="modal-color-custom" class="w-8 h-8 cursor-pointer" value="${dayData.color}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="modal-note" class="block text-sm font-medium text-gray-700 mb-1">笔记:</label>
+                        <textarea id="modal-note" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">${dayData.note || ''}</textarea>
+                    </div>
+                    
+                    <div>
+                        <label for="modal-time" class="block text-sm font-medium text-gray-700 mb-1">时间:</label>
+                        <input type="time" id="modal-time" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="${dayData.time || ''}">
+                    </div>
+                `;
+                
+                // 等待DOM更新后再绑定事件
+                setTimeout(() => {
+                    // 添加颜色选择事件
+                    const colorOptions = modalContent.querySelectorAll('.color-option');
+                    const customColorInput = document.getElementById('modal-color-custom');
+                    
+                    console.log('绑定颜色选择事件，选项数量:', colorOptions.length);
+                    
+                    colorOptions.forEach(option => {
+                        option.addEventListener('click', () => {
+                            console.log('点击了颜色选项:', option.dataset.color);
+                            // 移除所有选中状态
+                            colorOptions.forEach(opt => opt.classList.remove('ring-2', 'ring-gray-500'));
+                            // 添加当前选中状态
+                            option.classList.add('ring-2', 'ring-gray-500');
+                            // 更新自定义颜色输入
+                            if (customColorInput) {
+                                customColorInput.value = option.dataset.color;
+                            }
+                        });
+                    });
+                    
+                    if (customColorInput) {
+                        customColorInput.addEventListener('change', () => {
+                            console.log('自定义颜色已更改:', customColorInput.value);
+                            // 移除所有选中状态
+                            colorOptions.forEach(opt => opt.classList.remove('ring-2', 'ring-gray-500'));
+                        });
+                        
+                        // 确保自定义颜色输入初始值正确
+                        customColorInput.value = dayData.color || '#3B82F6';
+                    }
+                }, 100);
+                
+                modal.classList.remove('hidden');
+            }
+            
+            // 关闭模态框
+            function closeEditModal() {
+                modal.classList.add('hidden');
+                currentEditDay = null;
+            }
+            
+            // 保存编辑
+            function saveEdit() {
+                if (currentEditDay !== null) {
+                    const dayIndex = currentEditDay - 1;
+                    const completed = document.getElementById('modal-completed').checked;
+                    const note = document.getElementById('modal-note').value;
+                    const time = document.getElementById('modal-time').value;
+                    const color = document.getElementById('modal-color-custom').value;
+                    
+                    currentTheme.daysData[dayIndex].completed = completed;
+                    currentTheme.daysData[dayIndex].note = note;
+                    currentTheme.daysData[dayIndex].time = time;
+                    currentTheme.daysData[dayIndex].color = color;
+                    
+                    saveData();
+                    renderDaysGrid();
+                    closeEditModal();
+                }
+            }
+            
+            // 更新进度
+            function updateProgress() {
+                const completedDays = currentTheme.daysData.filter(day => day.completed).length;
+                const totalDays = currentTheme.daysData.length;
+                const percentage = Math.round((completedDays / totalDays) * 100);
+                
+                console.log(`更新进度：${completedDays}/${totalDays} (${percentage}%)`);
+                
+                // 根据跟踪周期设置单位
+                let unit = '天';
+                if (currentTheme.trackingPeriod === 'hour') {
+                    unit = 'h';
+                } else if (currentTheme.trackingPeriod === 'half-hour') {
+                    unit = '半小时';
+                }
+                
+                progressText.textContent = `${completedDays}/${totalDays} ${unit} (${percentage}%)`;
+                progressValue.style.width = `${percentage}%`;
+                
+                // 根据进度改变颜色
+                if (percentage === 100) {
+                    progressValue.classList.remove('bg-primary');
+                    progressValue.classList.add('bg-green-500');
+                } else if (percentage >= 75) {
+                    progressValue.classList.remove('bg-green-500');
+                    progressValue.classList.add('bg-primary');
+                } else {
+                    progressValue.classList.remove('bg-green-500');
+                    progressValue.classList.add('bg-primary');
+                }
+            }
+            
+            // 检查成就
+            function checkAchievements() {
+                const completedDays = currentTheme.daysData.filter(day => day.completed).length;
+                const achievements = [];
+                
+                // 连续打卡成就
+                let streak = 0;
+                let maxStreak = 0;
+                
+                currentTheme.daysData.forEach(day => {
+                    if (day.completed) {
+                        streak++;
+                        maxStreak = Math.max(maxStreak, streak);
+                    } else {
+                        streak = 0;
+                    }
+                });
+                
+                if (maxStreak >= 7) {
+                    achievements.push({
+                        title: '连续一周',
+                        description: `连续完成 ${maxStreak} 天！`,
+                        icon: 'fa-calendar-check-o',
+                        color: 'bg-blue-500',
+                        earned: true
+                    });
+                }
+                
+                if (maxStreak >= 30) {
+                    achievements.push({
+                        title: '月度达人',
+                        description: `连续完成 ${maxStreak} 天！`,
+                        icon: 'fa-calendar-check-o',
+                        color: 'bg-purple-500',
+                        earned: true
+                    });
+                }
+                
+                // 完成百分比成就
+                if (completedDays >= 25) {
+                    achievements.push({
+                        title: '四分之一完成',
+                        description: '已完成目标的25%！',
+                        icon: 'fa-trophy',
+                        color: 'bg-yellow-500',
+                        earned: true
+                    });
+                }
+                
+                if (completedDays >= 50) {
+                    achievements.push({
+                        title: '半途英雄',
+                        description: '已完成目标的50%！',
+                        icon: 'fa-trophy',
+                        color: 'bg-orange-500',
+                        earned: true
+                    });
+                }
+                
+                if (completedDays >= 75) {
+                    achievements.push({
+                        title: '即将完成',
+                        description: '已完成目标的75%！',
+                        icon: 'fa-trophy',
+                        color: 'bg-red-500',
+                        earned: true
+                    });
+                }
+                
+                if (completedDays >= 100) {
+                    achievements.push({
+                        title: '目标达成',
+                        description: '恭喜！你已完成全部100天！',
+                        icon: 'fa-star',
+                        color: 'bg-green-500',
+                        earned: true
+                    });
+                }
+                
+                // 渲染成就
+                achievementsContainer.innerHTML = '';
+                
+                if (achievements.length === 0) {
+                    achievementsContainer.innerHTML = `
+                        <div class="col-span-2 text-center py-8 text-gray-500">
+                            <i class="fa fa-trophy text-4xl mb-2"></i>
+                            <p>暂无成就。继续加油！</p>
+                        </div>
+                    `;
+                } else {
+                    achievements.forEach(achievement => {
+                        const achievementElement = document.createElement('div');
+                        achievementElement.className = `flex items-center p-4 rounded-lg border ${achievement.earned ? 'border-gray-200 bg-gray-50' : 'border-gray-100 bg-gray-50 opacity-50'}`;
+                        
+                        achievementElement.innerHTML = `
+                            <div class="w-12 h-12 rounded-full ${achievement.color} flex items-center justify-center text-white mr-4">
+                                <i class="fa ${achievement.icon} text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800">${achievement.title}</h3>
+                                <p class="text-sm text-gray-600">${achievement.description}</p>
+                            </div>
+                        `;
+                        
+                        achievementsContainer.appendChild(achievementElement);
+                    });
+                }
+            }
+            
+            // 保存数据到本地存储
+            function saveData() {
+                console.log('开始保存数据...');
+                
+                // 更新当前主题的数据
+                currentTheme.notes = notesArea.value;
+                currentTheme.trackingPeriod = document.querySelector('input[name="tracking-period"]:checked').value;
+                currentTheme.startDate = startDateInput.value;
+                currentTheme.endDate = endDateInput.value;
+                
+                // 计算完成天数
+                const completedCount = currentTheme.daysData.filter(day => day.completed).length;
+                console.log(`当前完成天数: ${completedCount}/100`);
+                
+                // 更新主题列表中的当前主题
+                const themeIndex = themes.findIndex(theme => theme.id === currentThemeId);
+                if (themeIndex !== -1) {
+                    themes[themeIndex] = currentTheme;
+                    console.log('已更新主题列表中的当前主题');
+                } else {
+                    console.log('警告：未找到当前主题在列表中');
+                }
+                
+                try {
+                    // 保存所有数据
+                    localStorage.setItem('themes', JSON.stringify(themes));
+                    localStorage.setItem('currentThemeId', currentThemeId);
+                    console.log('数据保存成功！');
+                } catch (error) {
+                    console.error('保存数据时出错:', error);
+                }
+            }
+            
+            // 重置数据
+            function resetData() {
+                if (confirm('确定要重置此主题的所有进度吗？此操作无法撤销。')) {
+                    currentTheme.daysData = Array(100).fill(null).map((_, i) => ({
+                        day: i + 1,
+                        completed: false,
+                        date: null,
+                        note: '',
+                        time: null,
+                        color: '#B4BEC6' // 默认莫兰迪灰蓝色
+                    }));
+                    
+                    currentTheme.notes = '';
+                    notesArea.value = '';
+                    
+                    // 重置日期
+                    currentTheme.startDate = defaultStartDate.toISOString().split('T')[0];
+                    currentTheme.endDate = defaultEndDate.toISOString().split('T')[0];
+                    startDateInput.value = currentTheme.startDate;
+                    endDateInput.value = currentTheme.endDate;
+                    
+                    saveData();
+                    renderDaysGrid();
+                    
+                    // 显示重置成功消息
+                    showNotification('进度已成功重置！', 'success');
+                }
+            }
+            
+            // 导出为图片
+            function exportData() {
+                console.log('开始导出图片...');
+                
+                // 显示加载提示
+                showNotification('正在生成图片，请稍候...', 'info');
+                
+                // 创建一个临时容器来绘制导出内容
+                const exportContainer = document.createElement('div');
+                exportContainer.style.position = 'absolute';
+                exportContainer.style.left = '-9999px';
+                exportContainer.style.top = '-9999px';
+                exportContainer.style.width = '800px';
+                exportContainer.style.padding = '40px';
+                exportContainer.style.backgroundColor = '#ffffff';
+                exportContainer.style.borderRadius = '12px';
+                exportContainer.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                
+                // 添加标题
+                const titleElement = document.createElement('h1');
+                titleElement.textContent = currentTheme.title;
+                titleElement.style.fontSize = '24px';
+                titleElement.style.fontWeight = 'bold';
+                titleElement.style.color = '#1F2937';
+                titleElement.style.marginBottom = '8px';
+                titleElement.style.textAlign = 'center';
+                exportContainer.appendChild(titleElement);
+                
+                // 添加副标题
+                if (currentTheme.subtitle) {
+                    const subtitleElement = document.createElement('p');
+                    subtitleElement.textContent = currentTheme.subtitle;
+                    subtitleElement.style.fontSize = '16px';
+                    subtitleElement.style.color = '#6B7280';
+                    subtitleElement.style.marginBottom = '32px';
+                    subtitleElement.style.textAlign = 'center';
+                    exportContainer.appendChild(subtitleElement);
+                }
+                
+                // 创建进度统计
+                const statsContainer = document.createElement('div');
+                statsContainer.style.display = 'flex';
+                statsContainer.style.justifyContent = 'center';
+                statsContainer.style.marginBottom = '32px';
+                statsContainer.style.gap = '32px';
+                
+                const completedDays = currentTheme.daysData.filter(day => day.completed).length;
+                const totalDays = currentTheme.daysData.length;
+                const percentage = Math.round((completedDays / totalDays) * 100);
+                
+                // 添加统计信息
+                const statsElement = document.createElement('div');
+                statsElement.style.textAlign = 'center';
+                statsElement.innerHTML = `
+                    <div style="font-size: 32px; font-weight: bold; color: #3B82F6;">${completedDays}/${totalDays}</div>
+                    <div style="font-size: 14px; color: #6B7280;">完成天数</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #10B981;">${percentage}%</div>
+                    <div style="font-size: 14px; color: #6B7280;">完成率</div>
+                `;
+                statsContainer.appendChild(statsElement);
+                
+                exportContainer.appendChild(statsContainer);
+                
+                // 创建打卡网格
+                const gridContainer = document.createElement('div');
+                gridContainer.style.display = 'grid';
+                gridContainer.style.gridTemplateColumns = 'repeat(10, 1fr)';
+                gridContainer.style.gap = '8px';
+                gridContainer.style.justifyContent = 'center';
+                
+                // 添加打卡天数
+                currentTheme.daysData.forEach((day, index) => {
+                    const dayElement = document.createElement('div');
+                    dayElement.style.width = '50px';
+                    dayElement.style.height = '50px';
+                    dayElement.style.borderRadius = '50%';
+                    dayElement.style.display = 'flex';
+                    dayElement.style.alignItems = 'center';
+                    dayElement.style.justifyContent = 'center';
+                    dayElement.style.fontSize = '14px';
+                    dayElement.style.fontWeight = 'bold';
+                    dayElement.style.border = '2px solid #E5E7EB';
+                    
+                    if (day.completed) {
+                        dayElement.style.backgroundColor = day.color || '#3B82F6';
+                        dayElement.style.borderColor = day.color || '#3B82F6';
+                        dayElement.style.color = '#FFFFFF';
+                    } else {
+                        dayElement.style.backgroundColor = '#FFFFFF';
+                        dayElement.style.color = '#6B7280';
+                    }
+                    
+                    dayElement.textContent = day.day;
+                    gridContainer.appendChild(dayElement);
+                });
+                
+                exportContainer.appendChild(gridContainer);
+                
+                // 添加导出日期
+                const dateElement = document.createElement('p');
+                dateElement.textContent = `导出日期: ${new Date().toLocaleDateString()}`;
+                dateElement.style.fontSize = '12px';
+                dateElement.style.color = '#9CA3AF';
+                dateElement.style.marginTop = '32px';
+                dateElement.style.textAlign = 'center';
+                exportContainer.appendChild(dateElement);
+                
+                // 添加到文档中
+                document.body.appendChild(exportContainer);
+                
+                // 使用html2canvas生成图片
+                html2canvas(exportContainer, {
+                    backgroundColor: '#FFFFFF',
+                    scale: 2, // 提高图片质量
+                    logging: false,
+                    useCORS: true
+                }).then(canvas => {
+                    console.log('图片生成成功！');
+                    
+                    // 创建下载链接
+                    const link = document.createElement('a');
+                    link.download = `100days-tracker-${currentTheme.title.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    // 清理临时元素
+                    document.body.removeChild(exportContainer);
+                    
+                    // 显示成功提示
+                    showNotification('图片导出成功！', 'success');
+                }).catch(error => {
+                    console.error('导出图片时出错:', error);
+                    document.body.removeChild(exportContainer);
+                    showNotification('导出失败，请重试！', 'error');
+                });
+            }
+            
+            // 打开颜色选择模态框
+            function openColorSelectionModal(day) {
+                currentEditDay = day;
+                const dayData = currentTheme.daysData[day - 1];
+                const startDate = new Date(startDateInput.value);
+                const dayDate = new Date(startDate);
+                dayDate.setDate(startDate.getDate() + (day - 1));
+                
+                modalTitle.textContent = `Select Color for Day ${day}`;
+                
+                modalContent.innerHTML = `
+                    <div class="mb-6">
+                        <p class="text-gray-700 mb-3">为你已完成的日子选择一个颜色：</p>
+                        <div class="grid grid-cols-4 gap-3">
+                            ${traditionalColors.map(color => `
+                                <div class="color-option w-12 h-12 rounded-full border-2 border-gray-300 cursor-pointer hover:scale-105 transition-transform relative has-tooltip" data-color="${color.hex}" style="background-color: ${color.hex};">
+                                    <span class="tooltip">${color.name}</span>
+                                </div>
+                            `).join('')}
+                            <div class="color-option w-12 h-12 rounded-full border-2 border-gray-300 cursor-pointer hover:scale-105 transition-transform flex items-center justify-center" data-color="custom">
+                                <i class="fa fa-plus text-gray-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="custom-color-container" class="mb-6 hidden">
+                        <label for="custom-color-input" class="block text-sm font-medium text-gray-700 mb-1">自定义颜色:</label>
+                        <div class="flex items-center gap-3">
+                            <input type="color" id="custom-color-input" class="w-10 h-10 cursor-pointer">
+                            <input type="text" id="custom-color-hex" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="#000000">
+                        </div>
+                    </div>
+                `;
+                
+                // 添加颜色选择事件
+                const colorOptions = modalContent.querySelectorAll('.color-option');
+                const customColorContainer = document.getElementById('custom-color-container');
+                const customColorInput = document.getElementById('custom-color-input');
+                const customColorHex = document.getElementById('custom-color-hex');
+                
+                colorOptions.forEach(option => {
+                    option.addEventListener('click', () => {
+                        const color = option.dataset.color;
+                        
+                        if (color === 'custom') {
+                            // 显示自定义颜色选择器
+                            customColorContainer.classList.remove('hidden');
+                            customColorInput.focus();
+                        } else {
+                            // 选择预设颜色
+                            selectColor(color);
+                        }
+                    });
+                });
+                
+                // 自定义颜色输入事件
+                customColorInput.addEventListener('input', () => {
+                    customColorHex.value = customColorInput.value;
+                });
+                
+                customColorHex.addEventListener('input', () => {
+                    // 验证十六进制颜色格式
+                    if (/^#[0-9A-F]{6}$/i.test(customColorHex.value)) {
+                        customColorInput.value = customColorHex.value;
+                    }
+                });
+                
+                customColorHex.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && /^#[0-9A-F]{6}$/i.test(customColorHex.value)) {
+                        selectColor(customColorHex.value);
+                    }
+                });
+                
+                // 修改模态框确认按钮文本
+                modalConfirm.textContent = 'Confirm';
+                modalConfirm.onclick = () => {
+                    // 如果自定义颜色容器可见，使用自定义颜色
+                    if (!customColorContainer.classList.contains('hidden') && /^#[0-9A-F]{6}$/i.test(customColorHex.value)) {
+                        selectColor(customColorHex.value);
+                    } else {
+                        // 否则使用默认颜色
+                        selectColor('#B4BEC6');
+                    }
+                };
+                
+                modal.classList.remove('hidden');
+                
+                // 选择颜色函数
+                function selectColor(color) {
+                    const dayIndex = currentEditDay - 1;
+                    currentTheme.daysData[dayIndex].color = color;
+                    
+                    saveData();
+                    renderDaysGrid();
+                    closeEditModal();
+                    
+                    // 显示成功消息
+                    showNotification(`第 ${currentEditDay} 天已标记为完成并设置颜色！`, 'success');
+                }
+            }
+            
+            // 打开主题管理模态框
+            function openThemeManager() {
+                modalTitle.textContent = '管理主题';
+                
+                modalContent.innerHTML = `
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-medium text-gray-800">你的主题</h4>
+                            <button id="add-theme-btn" class="px-3 py-1 bg-primary text-white rounded-md hover:bg-accent transition-colors text-sm flex items-center">
+                                <i class="fa fa-plus mr-1"></i> Add Theme
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-3" id="themes-list">
+                            ${themes.map(theme => `
+                                <div class="flex justify-between items-center p-3 rounded-lg border ${theme.id === currentThemeId ? 'border-primary bg-blue-50' : 'border-gray-200'}">
+                                    <div>
+                                        <h5 class="font-medium">${theme.title}</h5>
+                                        <p class="text-sm text-gray-600">${theme.subtitle}</p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        ${theme.id !== currentThemeId ? `
+                                            <button class="switch-theme-btn p-2 text-gray-600 hover:text-primary transition-colors" data-theme-id="${theme.id}">
+                                                <i class="fa fa-check-circle"></i>
+                                            </button>
+                                        ` : `
+                                            <span class="px-2 py-1 bg-primary text-white text-xs rounded-full">当前</span>
+                                        `}
+                                        <button class="delete-theme-btn p-2 text-gray-600 hover:text-red-500 transition-colors" data-theme-id="${theme.id}">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div id="add-theme-form" class="hidden">
+                        <h4 class="font-medium text-gray-800 mb-3">创建新主题</h4>
+                        <div class="mb-3">
+                            <label for="new-theme-title" class="block text-sm font-medium text-gray-700 mb-1">标题:</label>
+                            <input type="text" id="new-theme-title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="我的新习惯打卡">
+                        </div>
+                        <div class="mb-4">
+                            <label for="new-theme-subtitle" class="block text-sm font-medium text-gray-700 mb-1">副标题:</label>
+                            <input type="text" id="new-theme-subtitle" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="追踪你的进度">
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button id="cancel-add-theme" class="px-3 py-1 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition-colors text-sm">
+                                Cancel
+                            </button>
+                            <button id="confirm-add-theme" class="px-3 py-1 bg-primary text-white rounded-md hover:bg-accent transition-colors text-sm">
+                                Create
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                modalConfirm.style.display = 'none';
+                modal.classList.remove('hidden');
+                
+                // 添加事件监听器
+                document.getElementById('add-theme-btn').addEventListener('click', () => {
+                    document.getElementById('add-theme-form').classList.remove('hidden');
+                });
+                
+                document.getElementById('cancel-add-theme').addEventListener('click', () => {
+                    document.getElementById('add-theme-form').classList.add('hidden');
+                });
+                
+                document.getElementById('confirm-add-theme').addEventListener('click', () => {
+                    const title = document.getElementById('new-theme-title').value.trim() || 'New Theme';
+                    const subtitle = document.getElementById('new-theme-subtitle').value.trim() || 'Track your progress';
+                    const newThemeId = 'theme_' + Date.now();
+                    
+                    // 创建新主题
+                    const newTheme = {
+                        id: newThemeId,
+                        title: title,
+                        subtitle: subtitle,
+                        daysData: Array(100).fill(null).map((_, i) => ({
+                            day: i + 1,
+                            completed: false,
+                            date: null,
+                            note: '',
+                            time: null,
+                            color: '#B4BEC6' // 默认莫兰迪灰蓝色
+                        })),
+                        notes: '',
+                        trackingPeriod: 'day',
+                        startDate: defaultStartDate.toISOString().split('T')[0],
+                        endDate: defaultEndDate.toISOString().split('T')[0]
+                    };
+                    
+                    // 添加到主题列表
+                    themes.push(newTheme);
+                    
+                    // 切换到新主题
+                    currentThemeId = newThemeId;
+                    currentTheme = newTheme;
+                    
+                    // 更新UI
+                    trackerTitle.textContent = currentTheme.title;
+                    trackerSubtitle.textContent = currentTheme.subtitle;
+                    startDateInput.value = currentTheme.startDate;
+                    endDateInput.value = currentTheme.endDate;
+                    notesArea.value = currentTheme.notes;
+                    
+                    // 保存数据并重新渲染
+                    saveData();
+                    renderDaysGrid();
+                    
+                    // 关闭模态框
+                    closeEditModal();
+                    
+                    // 显示成功消息
+                    showNotification(`新主题"${title}"已创建！`, 'success');
+                });
+                
+                // 添加切换主题事件
+                document.querySelectorAll('.switch-theme-btn').forEach(btn => {
+                    // 点击事件
+                    btn.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        const themeId = this.dataset.themeId;
+                        switchTheme(themeId);
+                    });
+                    
+                    // 触摸事件（移动端）
+                    btn.addEventListener('touchstart', function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const themeId = this.dataset.themeId;
+                        switchTheme(themeId);
+                    });
+                });
+                
+                // 添加删除主题事件
+                document.querySelectorAll('.delete-theme-btn').forEach(btn => {
+                    // 支持点击事件
+                    btn.addEventListener('click', function(event) {
+                        event.stopPropagation(); // 防止事件冒泡
+                        const themeId = this.dataset.themeId;
+                        
+                        // 不允许删除最后一个主题
+                        if (themes.length <= 1) {
+                            showNotification('不能删除最后一个主题！', 'error');
+                            return;
+                        }
+                        
+                        // 确认删除
+                        if (confirm('确定要删除这个主题吗？此操作无法撤销。')) {
+                            deleteTheme(themeId);
+                        }
+                    });
+                    
+                    // 支持触摸事件（移动端）
+                    btn.addEventListener('touchstart', function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const themeId = this.dataset.themeId;
+                        
+                        // 不允许删除最后一个主题
+                        if (themes.length <= 1) {
+                            showNotification('不能删除最后一个主题！', 'error');
+                            return;
+                        }
+                        
+                        // 确认删除
+                        if (confirm('确定要删除这个主题吗？此操作无法撤销。')) {
+                            deleteTheme(themeId);
+                        }
+                    });
+                });
+            }
+            
+            // 切换主题
+            function switchTheme(themeId) {
+                const theme = themes.find(t => t.id === themeId);
+                if (theme) {
+                    currentThemeId = themeId;
+                    currentTheme = theme;
+                    
+                    // 更新UI
+                    trackerTitle.textContent = currentTheme.title;
+                    trackerSubtitle.textContent = currentTheme.subtitle;
+                    startDateInput.value = currentTheme.startDate;
+                    endDateInput.value = currentTheme.endDate;
+                    notesArea.value = currentTheme.notes;
+                    
+                    // 设置跟踪周期
+                    trackingPeriodRadios.forEach(radio => {
+                        radio.checked = radio.value === currentTheme.trackingPeriod;
+                    });
+                    
+                    // 保存数据并重新渲染
+                    saveData();
+                    renderDaysGrid();
+                    
+                    // 关闭模态框
+                    closeEditModal();
+                    
+                    // 显示成功消息
+                    showNotification(`已切换到主题"${theme.title}"`, 'success');
+                }
+            }
+            
+            // 删除主题
+            function deleteTheme(themeId) {
+                const themeIndex = themes.findIndex(t => t.id === themeId);
+                if (themeIndex !== -1) {
+                    const themeTitle = themes[themeIndex].title;
+                    
+                    // 从列表中删除
+                    themes.splice(themeIndex, 1);
+                    
+                    // 如果删除的是当前主题，切换到第一个主题
+                    if (themeId === currentThemeId) {
+                        if (themes.length > 0) {
+                            switchTheme(themes[0].id);
+                        } else {
+                            // 如果没有主题了，创建一个默认主题
+                            const defaultTheme = {
+                                id: 'default',
+                                title: 'My 100 Days Tracker',
+                                subtitle: 'Track your progress, build habits, achieve goals',
+                                daysData: Array(100).fill(null).map((_, i) => ({
+                                    day: i + 1,
+                                    completed: false,
+                                    date: null,
+                                    note: '',
+                                    time: null,
+                                    color: '#B4BEC6'
+                                })),
+                                notes: '',
+                                trackingPeriod: 'day',
+                                startDate: defaultStartDate.toISOString().split('T')[0],
+                                endDate: defaultEndDate.toISOString().split('T')[0]
+                            };
+                            
+                            themes.push(defaultTheme);
+                            switchTheme('default');
+                        }
+                    }
+                    
+                    // 保存数据
+                    saveData();
+                    
+                    // 关闭模态框
+                    closeEditModal();
+                    
+                    // 显示成功消息
+                    showNotification(`主题"${themeTitle}"已删除！`, 'success');
+                }
+            }
+            
+            // 打开编辑标题模态框
+            function openEditTitleModal() {
+                modalTitle.textContent = '编辑标题和副标题';
+                
+                modalContent.innerHTML = `
+                    <div class="mb-4">
+                        <label for="edit-title" class="block text-sm font-medium text-gray-700 mb-1">标题:</label>
+                        <input type="text" id="edit-title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="${currentTheme.title}">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="edit-subtitle" class="block text-sm font-medium text-gray-700 mb-1">副标题:</label>
+                        <input type="text" id="edit-subtitle" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" value="${currentTheme.subtitle}">
+                    </div>
+                `;
+                
+                modalConfirm.textContent = 'Save';
+                modalConfirm.style.display = 'block';
+                modalConfirm.onclick = () => {
+                    const newTitle = document.getElementById('edit-title').value.trim() || '我的100天打卡';
+                    const newSubtitle = document.getElementById('edit-subtitle').value.trim() || '追踪进度，培养习惯，实现目标';
+                    
+                    // 更新当前主题
+                    currentTheme.title = newTitle;
+                    currentTheme.subtitle = newSubtitle;
+                    
+                    // 更新UI
+                    trackerTitle.textContent = newTitle;
+                    trackerSubtitle.textContent = newSubtitle;
+                    
+                    // 保存数据
+                    saveData();
+                    
+                    // 关闭模态框
+                    closeEditModal();
+                    
+                    // 显示成功消息
+                    showNotification('标题和副标题已更新！', 'success');
+                };
+                
+                modal.classList.remove('hidden');
+            }
+            
+            // 显示通知
+            function showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.className = `fixed bottom-4 right-4 px-4 py-2 rounded-md shadow-lg transition-all duration-300 transform translate-y-0 opacity-0 z-50 ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white`;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                // 显示通知
+                setTimeout(() => {
+                    notification.classList.remove('translate-y-0', 'opacity-0');
+                    notification.classList.add('translate-y-[-10px]', 'opacity-100');
+                }, 10);
+                
+                // 自动隐藏通知
+                setTimeout(() => {
+                    notification.classList.remove('translate-y-[-10px]', 'opacity-100');
+                    notification.classList.add('translate-y-0', 'opacity-0');
+                    
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 3000);
+            }
+            
+            // 事件监听器
+            startDateInput.addEventListener('change', () => {
+                // 更新所有天数的日期
+                const startDate = new Date(startDateInput.value);
+                
+                currentTheme.daysData.forEach((day, index) => {
+                    const dayDate = new Date(startDate);
+                    dayDate.setDate(startDate.getDate() + index);
+                    day.date = dayDate.toISOString().split('T')[0];
+                });
+                
+                saveData();
+                renderDaysGrid();
+            });
+            
+            endDateInput.addEventListener('change', () => {
+                saveData();
+            });
+            
+            saveNotesBtn.addEventListener('click', () => {
+                currentTheme.notes = notesArea.value;
+                saveData();
+                showNotification('Notes saved successfully!', 'success');
+            });
+            
+            resetBtn.addEventListener('click', resetData);
+            exportBtn.addEventListener('click', exportData);
+            
+            closeModal.addEventListener('click', closeEditModal);
+            modalConfirm.addEventListener('click', saveEdit);
+            
+            // 点击模态框外部关闭
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeEditModal();
+                }
+            });
+            
+            // 加载笔记
+            notesArea.value = currentTheme.notes;
+            
+            // 设置跟踪周期
+            trackingPeriodRadios.forEach(radio => {
+                if (radio.value === currentTheme.trackingPeriod) {
+                    radio.checked = true;
+                }
+                
+                radio.addEventListener('change', () => {
+                    currentTheme.trackingPeriod = radio.value;
+                    saveData();
+                    renderDaysGrid();
+                });
+            });
+            
+            // 添加主题切换器事件
+            themeSwitcher.addEventListener('click', openThemeManager);
+            
+            // 添加编辑标题事件
+            editTitleBtn.addEventListener('click', openEditTitleModal);
+            
+            // 初始化渲染
+            console.log('初始化渲染天数网格');
+            renderDaysGrid();
+            console.log('应用初始化完成，所有功能已就绪');
+            
+            // 添加键盘快捷键
+            document.addEventListener('keydown', (e) => {
+                // Ctrl+S 保存笔记
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    notes = notesArea.value;
+                    saveData();
+                    showNotification('Notes saved successfully!', 'success');
+                }
+                
+                // ESC 关闭模态框
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                    closeEditModal();
+                }
+            });
+            
+            // 添加拖放支持
+            let draggedDay = null;
+            
+            daysGrid.addEventListener('dragstart', (e) => {
+                if (e.target.classList.contains('circle-checkbox')) {
+                    draggedDay = e.target.dataset.day;
+                    e.target.classList.add('opacity-50');
+                }
+            });
+            
+            daysGrid.addEventListener('dragend', (e) => {
+                if (e.target.classList.contains('circle-checkbox')) {
+                    e.target.classList.remove('opacity-50');
+                    draggedDay = null;
+                }
+            });
+            
+            daysGrid.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+            
+            daysGrid.addEventListener('drop', (e) => {
+                e.preventDefault();
+                
+                if (e.target.classList.contains('circle-checkbox') && draggedDay) {
+                    const targetDay = e.target.dataset.day;
+                    
+                    // 交换两天的数据
+                    const draggedIndex = draggedDay - 1;
+                    const targetIndex = targetDay - 1;
+                    
+                    const temp = currentTheme.daysData[draggedIndex];
+                    currentTheme.daysData[draggedIndex] = currentTheme.daysData[targetIndex];
+                    currentTheme.daysData[targetIndex] = temp;
+                    
+                    // 更新天数
+                    currentTheme.daysData[draggedIndex].day = draggedIndex + 1;
+                    currentTheme.daysData[targetIndex].day = targetIndex + 1;
+                    
+                    saveData();
+                    renderDaysGrid();
+                    
+                    showNotification('Days swapped successfully!', 'success');
+                }
+            });
+            
+            // 使天数可拖动
+            daysGrid.addEventListener('DOMNodeInserted', (e) => {
+                if (e.target.querySelector && e.target.querySelector('.circle-checkbox')) {
+                    const circleCheckbox = e.target.querySelector('.circle-checkbox');
+                    circleCheckbox.setAttribute('draggable', 'true');
+                }
+            });
+            
+            // 添加颜色主题CSS
+            const style = document.createElement('style');
+            style.textContent = `
+                .editing-breathing-bg {
+                    animation: breathing 2s ease-in-out infinite;
+                }
+                
+                @keyframes breathing {
+                    0% { opacity: 0.7; }
+                    50% { opacity: 1; }
+                    100% { opacity: 0.7; }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+
+</body></html>
